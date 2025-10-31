@@ -1,242 +1,290 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>To‑Do List</title>
+  <title>이진수 카드놀이 (16-8-4-2-1)</title>
   <style>
-    :root{
-      --bg:#0f172a; /* slate-900 */
-      --panel:#111827; /* gray-900 */
-      --panel-2:#1f2937; /* gray-800 */
-      --text:#e5e7eb; /* gray-200 */
-      --muted:#9ca3af; /* gray-400 */
-      --accent:#22c55e; /* green-500 */
-      --danger:#ef4444; /* red-500 */
-      --focus:#60a5fa; /* blue-400 */
+    :root {
+      --card-w: 140px;
+      --card-h: 190px;
+      --radius: 16px;
+      --gap: 16px;
+      --back-color: #3a7bd5; /* 카드 뒷면 색 */
+      --front-bg: #ffffff;
+      --table: #0f172a;      /* 배경 */
+      --dot-size: 16px;
+      --shadow: 0 10px 20px rgba(0,0,0,0.15);
+      --accent: #10b981;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#0b1022,#0f172a);color:var(--text);}
-    .container{max-width:720px;margin:48px auto;padding:16px}
-    .card{background:rgba(17,24,39,.8);backdrop-filter:blur(8px);border:1px solid #1f2937;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,.35)}
-    header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 12px}
-    h1{font-size:24px;margin:0;letter-spacing:.5px}
-    .count{font-size:12px;color:var(--muted)}
-    .input-row{display:flex;gap:8px;padding:0 20px 16px}
-    input[type="text"]{flex:1;padding:12px 14px;border-radius:10px;border:1px solid #334155;background:var(--panel-2);color:var(--text)}
-    input[type="text"]:focus{outline:2px solid var(--focus);border-color:transparent}
-    button{cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:#052e16;font-weight:600}
-    button.secondary{background:#334155;color:#e2e8f0}
-    button.ghost{background:transparent;border:1px solid #334155;color:#e2e8f0}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 16px}
-    .filters{display:flex;gap:6px}
-    .filters button[aria-pressed="true"]{outline:2px solid var(--focus);}
-    ul{list-style:none;margin:0;padding:0}
-    li.todo{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:12px 20px;border-top:1px solid #1f2937}
-    li.todo:last-child{border-bottom-left-radius:16px;border-bottom-right-radius:16px}
-    .todo input[type="checkbox"]{width:18px;height:18px}
-    .title{line-height:1.4;word-break:break-word}
-    .title.completed{color:#6b7280;text-decoration:line-through}
-    .actions{display:flex;gap:6px}
-    .empty{padding:24px 20px;color:var(--muted)}
-    .sr-only{position:absolute !important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Apple SD Gothic Neo, "맑은 고딕", sans-serif;
+      background: radial-gradient(1000px 600px at 20% -10%, #1e293b 0, #0f172a 55%) fixed;
+      color: #e5e7eb;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex; align-items: end; justify-content: space-between;
+      gap: 16px; margin-bottom: 18px;
+    }
+    h1 {
+      font-size: clamp(18px, 2.2vw, 26px);
+      margin: 0;
+    }
+    .hint {
+      opacity: .8; font-size: 14px; line-height: 1.4;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(var(--card-w), 1fr));
+      gap: var(--gap);
+      justify-items: center;
+      align-items: center;
+      margin: 8px 0 22px;
+    }
+
+    /* 카드 컨테이너 (3D 뒤집기) */
+    .card {
+      width: var(--card-w);
+      height: var(--card-h);
+      perspective: 1000px;
+      cursor: pointer;
+      position: relative;
+    }
+    .card:focus-visible { outline: 2px solid #fff; outline-offset: 4px; border-radius: var(--radius); }
+
+    .flip {
+      width: 100%; height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform .5s cubic-bezier(.2,.7,.2,1);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card.flipped .flip { transform: rotateY(180deg); }
+
+    .face {
+      position: absolute; inset: 0;
+      border-radius: var(--radius);
+      backface-visibility: hidden;
+      display: grid; place-items: center;
+      padding: 14px;
+    }
+
+    /* 앞면(점) */
+    .front {
+      background: var(--front-bg);
+      color: #0f172a;
+      transform: rotateY(180deg);
+      border: 2px solid #e2e8f0;
+    }
+
+    /* 뒷면(무늬 없음, 색만) */
+    .back {
+      background: linear-gradient(135deg, var(--back-color), #174ea6);
+      border: 2px solid rgba(255,255,255,.18);
+    }
+
+    /* 점 그리드 */
+    .dots {
+      display: grid;
+      gap: 10px;
+      width: 88%;
+      height: 72%;
+      align-content: center;
+      justify-content: center;
+    }
+    .dot {
+      width: var(--dot-size);
+      height: var(--dot-size);
+      border-radius: 50%;
+      background: #111827;
+      filter: drop-shadow(0 1px 0 rgba(0,0,0,.15));
+    }
+
+    /* 카드 하단 값 뱃지 */
+    .badge {
+      position: absolute;
+      bottom: 10px; right: 12px;
+      padding: 4px 10px;
+      background: #11182710;
+      backdrop-filter: blur(4px);
+      border-radius: 999px;
+      border: 1px solid #e5e7eb55;
+      color: #111827;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    /* 총합 표시 */
+    .sum {
+      display: flex; align-items: baseline; gap: 12px;
+      background: #0b1220;
+      padding: 16px 18px;
+      border: 1px solid #1f2937;
+      border-radius: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .sum .label { font-size: 16px; opacity: .85; }
+    .sum .value {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(26px, 6vw, 40px);
+      font-weight: 800;
+      color: var(--accent);
+      text-shadow: 0 0 16px #10b98122;
+      letter-spacing: .5px;
+      min-width: 1ch;
+    }
+
+    /* 반응형 */
+    @media (max-width: 860px) {
+      :root { --card-w: 120px; --card-h: 170px; }
+      .board { grid-template-columns: repeat(5, minmax(var(--card-w), 1fr)); }
+    }
+    @media (max-width: 640px) {
+      :root { --card-w: 94px; --card-h: 140px; --dot-size: 12px; }
+      .board { gap: 12px; }
+    }
+    @media (max-width: 520px) {
+      .board { grid-template-columns: repeat(3, minmax(var(--card-w), 1fr)); }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card" role="region" aria-label="To‑Do 앱">
-      <header>
-        <h1>To‑Do List</h1>
-        <div class="count" id="count">0개 남음</div>
-      </header>
-
-      <div class="input-row">
-        <label class="sr-only" for="newTodo">할 일 추가</label>
-        <input id="newTodo" type="text" placeholder="할 일을 입력하고 Enter 또는 ‘추가’ 클릭" autocomplete="off" />
-        <button id="addBtn" aria-label="할 일 추가">추가</button>
+  <div class="wrap">
+    <header>
+      <h1>이진수 카드놀이 — 16 · 8 · 4 · 2 · 1</h1>
+      <div class="hint">
+        카드를 클릭(또는 Space/Enter)하여 뒤집어요. 앞면이 보이는 카드의 값 합계를 아래에 표시합니다.
       </div>
+    </header>
 
-      <div class="toolbar">
-        <div class="filters" role="tablist" aria-label="보기 필터">
-          <button class="secondary" data-filter="all" aria-pressed="true">전체</button>
-          <button class="secondary" data-filter="active" aria-pressed="false">미완료</button>
-          <button class="secondary" data-filter="completed" aria-pressed="false">완료</button>
-        </div>
-        <div style="flex:1"></div>
-        <button id="clearCompleted" class="ghost" title="완료 항목 모두 삭제">완료 삭제</button>
-      </div>
+    <main>
+      <section class="board" id="board" aria-label="이진수 카드 보드">
+        <!-- JS가 카드 5장을 생성합니다 -->
+      </section>
 
-      <ul id="list" aria-live="polite"></ul>
-    </div>
+      <section class="sum" aria-live="polite">
+        <div class="label">합계</div>
+        <div class="value" id="sumValue">0</div>
+      </section>
+    </main>
   </div>
 
-  <template id="todoItem">
-    <li class="todo">
-      <input type="checkbox" aria-label="완료 표시" />
-      <div class="title" contenteditable="false"></div>
-      <div class="actions">
-        <button class="secondary edit" title="편집">편집</button>
-        <button class="ghost remove" title="삭제" aria-label="삭제">삭제</button>
-      </div>
-    </li>
-  </template>
-
   <script>
-    const STORAGE_KEY = 'vanilla_todo_v1';
+    /**
+     * 카드 스펙: 왼쪽 → 오른쪽 순서로 16, 8, 4, 2, 1
+     * 초기 상태는 모두 '뒤집힘(뒷면 보임)' = false
+     */
+    const CARD_VALUES = [16, 8, 4, 2, 1];
 
-    const $ = (sel, el=document) => el.querySelector(sel);
-    const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+    const board = document.getElementById('board');
+    const sumValue = document.getElementById('sumValue');
 
-    const state = {
-      todos: load(),
-      filter: 'all'
-    };
+    /**
+     * 점(도트) 그리드를 만들기
+     * - 점 개수만큼 원 모양 div를 만들고,
+     * - 적당한 정사각형에 가깝게 그리드 열 개수를 계산해 적용
+     */
+    function createDotsGrid(dotCount) {
+      const wrap = document.createElement('div');
+      wrap.className = 'dots';
 
-    const newTodo = $('#newTodo');
-    const addBtn = $('#addBtn');
-    const list = $('#list');
-    const count = $('#count');
-    const clearCompletedBtn = $('#clearCompleted');
+      // 정사각형에 가까운 열 수(ceil(sqrt(n)))로 자동 배치
+      const cols = Math.ceil(Math.sqrt(dotCount));
+      wrap.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
-    function save(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.todos));
-    }
-    function load(){
-      try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? []; }
-      catch{ return []; }
-    }
-
-    function uid(){ return Math.random().toString(36).slice(2,10); }
-
-    function addTodo(title){
-      title = title.trim();
-      if(!title) return;
-      state.todos.push({ id: uid(), title, completed:false, createdAt: Date.now() });
-      save();
-      render();
+      for (let i = 0; i < dotCount; i++) {
+        const d = document.createElement('div');
+        d.className = 'dot';
+        wrap.appendChild(d);
+      }
+      return wrap;
     }
 
-    function toggle(id){
-      const t = state.todos.find(t=>t.id===id);
-      if(!t) return;
-      t.completed = !t.completed;
-      save();
-      render();
-    }
+    /**
+     * 카드 DOM 생성
+     */
+    function createCard(value, index) {
+      const card = document.createElement('button');
+      card.className = 'card';
+      card.setAttribute('type', 'button');
+      card.setAttribute('data-value', String(value));
+      card.setAttribute('aria-pressed', 'false');
+      card.setAttribute('aria-label', `${value} 카드 (현재: 뒷면)`);
 
-    function remove(id){
-      state.todos = state.todos.filter(t=>t.id!==id);
-      save();
-      render();
-    }
+      const flip = document.createElement('div');
+      flip.className = 'flip';
 
-    function edit(id, newTitle){
-      const t = state.todos.find(t=>t.id===id);
-      if(!t) return;
-      t.title = newTitle.trim() || t.title; // 빈 편집은 무시
-      save();
-      render();
-    }
+      // 뒷면 (색만, 무늬 없음)
+      const back = document.createElement('div');
+      back.className = 'face back';
 
-    function clearCompleted(){
-      state.todos = state.todos.filter(t=>!t.completed);
-      save();
-      render();
-    }
+      // 앞면 (점 + 값 뱃지)
+      const front = document.createElement('div');
+      front.className = 'face front';
 
-    function setFilter(f){
-      state.filter = f;
-      $$('.filters button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.filter===f)));
-      render();
-    }
+      const dots = createDotsGrid(value);
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = value;
 
-    function filtered(){
-      if(state.filter==='active') return state.todos.filter(t=>!t.completed);
-      if(state.filter==='completed') return state.todos.filter(t=>t.completed);
-      return state.todos;
-    }
+      front.appendChild(dots);
+      front.appendChild(badge);
 
-    function render(){
-      list.innerHTML='';
-      const items = filtered();
-      if(items.length===0){
-        list.innerHTML = `<li class="empty">${state.filter==='completed'?'완료된 항목이 없습니다.':'할 일을 추가해 보세요 ✨'}</li>`;
-      } else {
-        for(const t of items){
-          const tpl = document.importNode($('#todoItem').content, true);
-          const li = tpl.querySelector('li');
-          const checkbox = tpl.querySelector('input[type="checkbox"]');
-          const title = tpl.querySelector('.title');
-          const editBtn = tpl.querySelector('.edit');
-          const removeBtn = tpl.querySelector('.remove');
+      flip.appendChild(front);
+      flip.appendChild(back);
+      card.appendChild(flip);
 
-          li.dataset.id = t.id;
-          checkbox.checked = t.completed;
-          title.textContent = t.title;
-          title.classList.toggle('completed', t.completed);
-
-          checkbox.addEventListener('change', ()=> toggle(t.id));
-          removeBtn.addEventListener('click', ()=> remove(t.id));
-
-          // 편집 토글
-          editBtn.addEventListener('click', ()=>{
-            const editing = title.getAttribute('contenteditable') === 'true';
-            if(!editing){
-              title.setAttribute('contenteditable','true');
-              title.focus();
-              placeCaretAtEnd(title);
-              editBtn.textContent='저장';
-            } else {
-              title.setAttribute('contenteditable','false');
-              editBtn.textContent='편집';
-              edit(t.id, title.textContent);
-            }
-          });
-
-          // Enter로 저장, Esc로 취소
-          title.addEventListener('keydown', (e)=>{
-            if(e.key==='Enter'){
-              e.preventDefault();
-              title.blur();
-              editBtn.click();
-            } else if(e.key==='Escape'){
-              e.preventDefault();
-              title.textContent = t.title;
-              title.setAttribute('contenteditable','false');
-              editBtn.textContent='편집';
-            }
-          });
-
-          list.appendChild(tpl);
+      // 클릭/키보드 토글
+      card.addEventListener('click', () => toggleCard(card));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          toggleCard(card);
         }
-      }
-      const remaining = state.todos.filter(t=>!t.completed).length;
-      count.textContent = `${remaining}개 남음`;
+      });
+
+      return card;
     }
 
-    function placeCaretAtEnd(el){
-      const range = document.createRange();
-      const sel = window.getSelection();
-      range.selectNodeContents(el);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
+    function toggleCard(cardEl) {
+      const nowFlipped = !cardEl.classList.contains('flipped');
+      cardEl.classList.toggle('flipped', nowFlipped);
+      cardEl.setAttribute('aria-pressed', String(nowFlipped));
+      const v = cardEl.getAttribute('data-value');
+      cardEl.setAttribute('aria-label', `${v} 카드 (현재: ${nowFlipped ? '앞면' : '뒷면'})`);
+      recalcSum();
     }
 
-    // 이벤트 바인딩
-    addBtn.addEventListener('click', ()=> addTodo(newTodo.value));
-    newTodo.addEventListener('keydown', (e)=>{
-      if(e.key==='Enter'){
-        addTodo(newTodo.value);
-        newTodo.value='';
-      }
-    });
-    clearCompletedBtn.addEventListener('click', clearCompleted);
-    $$('.filters button').forEach(b=> b.addEventListener('click', ()=> setFilter(b.dataset.filter)));
+    function recalcSum() {
+      const cards = [...document.querySelectorAll('.card')];
+      const sum = cards
+        .filter(c => c.classList.contains('flipped'))
+        .map(c => Number(c.getAttribute('data-value')))
+        .reduce((a, b) => a + b, 0);
+      sumValue.textContent = String(sum);
+    }
 
     // 초기 렌더
-    render();
+    function init() {
+      CARD_VALUES.forEach((v, i) => {
+        const c = createCard(v, i);
+        board.appendChild(c);
+      });
+      recalcSum();
+    }
+
+    init();
   </script>
 </body>
 </html>
